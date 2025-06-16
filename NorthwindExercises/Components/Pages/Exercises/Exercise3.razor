@@ -1,0 +1,98 @@
+﻿@page "/exercises/exercise3"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 3</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">3. Create a report that shows the capitalized FirstName and capitalized
+                        LastName renamed as FirstName and Lastname
+                        respectively and HireDate from the employees table sorted from the newest to the oldest
+                        employee.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Employees == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetEmployeesAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Employees != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Employees" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                First Name
+                            </MudTh>
+                            <MudTh>
+                                Last Name
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Employee>? Employees { get; set; }
+    private async Task GetEmployeesAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Employees = await dbContext.Employees
+        .OrderBy(e => e.HireDate)
+        .Select(e => new Employee
+        {
+            FirstName = e.FirstName.ToUpper(),
+            LastName = e.LastName.ToUpper()
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+
+}

@@ -1,0 +1,100 @@
+﻿@page "/exercises/exercise13"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 13</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">13. Create a report that shows the City, CompanyName, ContactName of
+                        customers from cities starting with A or B</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Customers == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Customers != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Customers" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                City
+                            </MudTh>
+                            <MudTh>
+                                Company Name
+                            </MudTh>
+                            <MudTh>
+                                Contact Name
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="City">@context.City</MudTd>
+                            <MudTd DataLabel="Company Name">@context.CompanyName</MudTd>
+                            <MudTd DataLabel="Contac Name">@context.ContactName</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Customer>? Customers { get; set; }
+    private async Task GetDetailsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Customers = await dbContext.Customers
+        .Where(e => e.City != null && (e.City.StartsWith("A") || e.City.StartsWith("B")))
+        .Select(e => new Customer
+        {
+            City = e.City,
+            CompanyName = e.CompanyName,
+            ContactName = e.ContactName
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

@@ -1,0 +1,98 @@
+﻿@page "/exercises/exercise1"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 1</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">1. Create a report that shows the CategoryName and Description from the
+                        categories
+                        table sorted by CategoryName.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Categories == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetCategoriesAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Categories != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+
+                    <MudTable Items="Categories" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Category Name
+                            </MudTh>
+                            <MudTh>
+                                Description
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Category Name">@context.CategoryName</MudTd>
+                            <MudTd DataLabel="Description">@context.Description</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Category>? Categories { get; set; }
+    private async Task GetCategoriesAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Categories = await dbContext.Categories
+        .OrderBy(c => c.CategoryName)
+        .Select(c => new Category
+        {
+            CategoryName = c.CategoryName,
+            Description = c.Description
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+
+}

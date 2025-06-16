@@ -1,0 +1,108 @@
+﻿@page "/exercises/exercise10"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 10</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">10. Create a report showing OrderDate, ShippedDate, CustomerID, Freight
+                        of all orders placed on 21 May 1996. </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Orders == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetOrdersAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Orders != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Orders" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                OrderDate
+                            </MudTh>
+                            <MudTh>
+                                ShippedDate
+                            </MudTh>
+                            <MudTh>
+                                Customer Id
+                            </MudTh>
+                            <MudTh>
+                                Freight
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="OrderDate">@context.OrderDate</MudTd>
+                            <MudTd DataLabel="ShippedDate">@context.ShippedDate?.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="Customer Id">@context.CustomerId</MudTd>
+                            <MudTd DataLabel="Freight">@context.Freight</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No Orders found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Order>? Orders { get; set; }
+    private async Task GetOrdersAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Orders = await dbContext.Orders
+        .Where(c => c.OrderDate == new DateTime(1996, 5, 21))
+        .Select(c => new Order
+        {
+            OrderDate = c.OrderDate,
+            ShippedDate = c.ShippedDate,
+            CustomerId = c.CustomerId,
+            Freight = c.Freight
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

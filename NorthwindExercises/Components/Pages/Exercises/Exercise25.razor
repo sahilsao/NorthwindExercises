@@ -1,0 +1,119 @@
+﻿@page "/exercises/exercise25"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 25</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">25. Create a report that shows the SupplierID, ProductName, CompanyName
+                        from all product Supplied by Exotic Liquids,
+                        Specialty Biscuits, Ltd., Escargots Nouveaux sorted by the supplier ID
+                        statement.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (supplierProducts == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (supplierProducts != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="supplierProducts" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Supplier ID
+                            </MudTh>
+                            <MudTh>
+                                Product Name
+                            </MudTh>
+                            <MudTh>
+                                Company Name
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel=" Supplier ID">@context.SupplierId</MudTd>
+                            <MudTd DataLabel=" Product Name">@context.ProductName</MudTd>
+                            <MudTd DataLabel=" Company Name">@context.CompanyName</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        supplierProducts = await dbContext.Suppliers
+        .Where(x => x.CompanyName == "Exotic Liquids"
+        || x.CompanyName == "Specialty Biscuits, Ltd."
+        || x.CompanyName == "Escargots Nouveaux")
+        .Join(dbContext.Products, s => s.SupplierId, p => p.SupplierId, (s, p) => new SupplierProductDto
+        {
+            SupplierId = s.SupplierId,
+            ProductName = p.ProductName,
+            CompanyName = s.CompanyName
+        })
+        .OrderBy(x => x.SupplierId)
+        .ToListAsync();
+    }
+
+    private List<SupplierProductDto>? supplierProducts { get; set; }
+
+    public class SupplierProductDto
+    {
+        public int SupplierId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+    }
+
+}

@@ -1,0 +1,99 @@
+﻿@page "/exercises/exercise8"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 8</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">8. Create a report showing ProductName, UnitPrice, QuantityPerUnit of products that are out of stock. </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Products == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetProductsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Products != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Products" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Product Name
+                            </MudTh>
+                            <MudTh>
+                                Unit Price
+                            </MudTh>      
+                            <MudTh>
+                                Quantity Per Unit
+                            </MudTh>                     
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Product Name">@context.ProductName</MudTd>
+                            <MudTd DataLabel="Unit Price">@context.UnitPrice</MudTd>
+                            <MudTd DataLabel="Quantity Per Unit">@context.QuantityPerUnit</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Product>? Products { get; set; }
+    private async Task GetProductsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Products = await dbContext.Products
+        .Where(p => p.UnitsInStock == 0)
+        .Select(p => new Product
+        {
+            ProductName = p.ProductName,
+            UnitPrice = p.UnitPrice,
+            QuantityPerUnit = p.QuantityPerUnit
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

@@ -1,0 +1,94 @@
+﻿@page "/exercises/exercise17"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 17</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">17. Create a report that shows the CompanyName, ContactName number of all customer that have no fax number.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Customers == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Customers != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Customers" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Company Name
+                            </MudTh>
+                            <MudTh>
+                                Contact Name
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Company Name">@context.CompanyName</MudTd>
+                            <MudTd DataLabel="Contact Name">@context.ContactName</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Customer>? Customers { get; set; }
+    private async Task GetDetailsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Customers = await dbContext.Customers
+        .Where(e => e.Fax == null || e.Fax.Trim().Length == 0)
+        .Select(e => new Customer
+        {
+            CompanyName = e.CompanyName,
+            ContactName = e.ContactName
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

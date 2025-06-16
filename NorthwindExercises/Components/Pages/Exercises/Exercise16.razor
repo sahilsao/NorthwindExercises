@@ -1,0 +1,106 @@
+﻿@page "/exercises/exercise16"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 16</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">16. Create a report that shows the ProductName, UnitsInStock,
+                        UnitsOnOrder, ReorderLevel of all products that are up for
+                        reorder.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Products == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Products != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Products" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Product Name
+                            </MudTh>
+                            <MudTh>
+                                Units In Stock
+                            </MudTh>
+                            <MudTh>
+                                Units On Order
+                            </MudTh>
+                            <MudTh>
+                                Reorder Level
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="ProductName">@context.ProductName</MudTd>
+                            <MudTd DataLabel="Units InStock">@context.UnitsInStock</MudTd>
+                            <MudTd DataLabel="Units On Order">@context.UnitsOnOrder</MudTd>
+                            <MudTd DataLabel="Reorder Level">@context.ReorderLevel</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Product>? Products { get; set; }
+    private async Task GetDetailsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Products = await dbContext.Products
+        .Where(e => e.UnitsInStock + e.UnitsOnOrder <= e.ReorderLevel && e.ReorderLevel > 0)
+        .Select(e => new Product
+        {
+            ProductName = e.ProductName,
+            UnitsInStock = e.UnitsInStock,
+            UnitsOnOrder = e.UnitsOnOrder,
+            ReorderLevel = e.ReorderLevel
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

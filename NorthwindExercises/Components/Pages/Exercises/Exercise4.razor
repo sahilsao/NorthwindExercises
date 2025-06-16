@@ -1,0 +1,112 @@
+﻿@page "/exercises/exercise4"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 4</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">4. Create a report that shows the top 10 OrderID, OrderDate, ShippedDate,
+                        CustomerID, Freight from the orders table sorted
+                        by Freight in descending order.</MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Orders == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetOrdersAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Orders != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Orders" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Order ID
+                            </MudTh>
+                            <MudTh>
+                                Order Date
+                            </MudTh>
+                            <MudTh>
+                                Shipped Date
+                            </MudTh>
+                            <MudTh>
+                                Customer ID
+                            </MudTh>
+                            <MudTh>
+                                Freight
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>                            
+                            <MudTd DataLabel="Order ID">@context.OrderId</MudTd>
+                            <MudTd DataLabel="Order Date">@context.OrderDate?.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="Shipped Date">@context.ShippedDate?.ToString("dd/MM/yyyy")</MudTd>                                       
+                            <MudTd DataLabel="Customer Id">@context.CustomerId</MudTd>
+                            <MudTd DataLabel="Freight">@(Convert.ToDecimal(context.Freight).ToString("C"))</MudTd>             
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Order>? Orders { get; set; }
+    private async Task GetOrdersAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Orders = await dbContext.Orders
+        .OrderByDescending(o => o.Freight)
+        .Take(10)
+        .Select(o => new Order
+        {
+            OrderId = o.OrderId,
+            OrderDate = o.OrderDate,
+            ShippedDate = o.ShippedDate,
+            CustomerId = o.CustomerId,
+            Freight = o.Freight
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

@@ -1,0 +1,105 @@
+﻿@page "/exercises/exercise28"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 28</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">28. Create a report that shows the LastName, FirstName, City of employees in cities other than "Seattle".
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Employees == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Employees != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Employees" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Last Name
+                            </MudTh>
+                            <MudTh>
+                                First Name
+                            </MudTh>
+                            <MudTh>
+                                City
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="City">@context.City</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<Employee>? Employees { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Employees = await dbContext.Employees
+        .Where(o => o.City!.Contains("Seattle") == false)
+        .Select(o => new Employee
+        {
+            LastName = o.LastName,
+            FirstName = o.FirstName,
+            City = o.City
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

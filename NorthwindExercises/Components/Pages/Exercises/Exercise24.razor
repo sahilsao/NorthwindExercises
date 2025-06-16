@@ -1,0 +1,107 @@
+﻿@page "/exercises/exercise24"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 24</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">24. Create a report showing OrderID, total number of Order ID as
+                        NumberofOrders from the orderdetails table grouped by
+                        OrderID and sorted by NumberofOrders in descending order. HINT: you will need to use a Groupby
+                        statement.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (orderSummaries == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (orderSummaries != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="orderSummaries" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Order ID
+                            </MudTh>
+                            <MudTh>
+                                Number of Orders
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Order Id">@context.OrderId</MudTd>
+                            <MudTd DataLabel="Number Of Orders">@context.NumberOfOrders</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public class OrderSummary
+    {
+        public int OrderId { get; set; }
+        public int NumberOfOrders { get; set; }
+    }
+    public List<OrderSummary>? orderSummaries { get; set; }
+    private async Task GetDetailsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        orderSummaries = await dbContext.OrderDetails
+        .GroupBy(c => c.OrderId)
+        .Select(g => new OrderSummary
+        {
+            OrderId = g.Key,
+            NumberOfOrders = g.Count()
+        })
+        .OrderByDescending(x => x.NumberOfOrders)
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

@@ -1,0 +1,104 @@
+﻿@page "/exercises/exercise22"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 22</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">22. Create a report that shows the FirstName, LastName, BirthDate of employees born in the 1950s.
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Employees == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Employees != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Employees" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                First Name
+                            </MudTh>
+                            <MudTh>
+                                Last Name
+                            </MudTh>
+                            <MudTh>
+                                Birth Date
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+                            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+                            <MudTd DataLabel="Birth Date">@context.BirthDate!.Value.ToShortDateString()</MudTd>                            
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Employee>? Employees { get; set; }
+    private async Task GetDetailsAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Employees = await dbContext.Employees
+        .Where(e => e.BirthDate!.Value.Year >= 1950 && e.BirthDate!.Value.Year <= 1960)
+        .Select(e => new Employee
+        {
+            FirstName = e.FirstName,
+            LastName = e.LastName,
+            BirthDate = e.BirthDate
+            
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

@@ -1,0 +1,145 @@
+﻿@page "/exercises/exercise32"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 32</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">32. Create a report that shows the average UnitPrice rounded to the next
+                        whole number, total price of UnitsInStock and
+                        maximum number of orders from the products table. All saved as AveragePrice, TotalStock and
+                        MaxOrder respectively
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Products == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Products != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Products" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Average Price
+                            </MudTh>
+                            <MudTh>
+                                Total Stock
+                            </MudTh>
+                            <MudTh>
+                                Max Order
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Average Price">@context.AveragePrice</MudTd>
+                            <MudTd DataLabel="Total Stock">@context.TotalStock</MudTd>
+                            <MudTd DataLabel=" Max Order">@context.MaxOrder</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<ProductStats>? Products { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Products = await dbContext.Products
+        .GroupBy(p => 1) // group all rows together
+        .Select(g => new ProductStats
+        {
+            AveragePrice = Math.Round((g.Average(p => p.UnitPrice) ?? 0), 0),
+            TotalStock = g.Sum(p => p.UnitsInStock) ?? 0,
+            MaxOrder = g.Max(p => p.UnitsOnOrder) ?? 0
+        })
+        .ToListAsync();
+        
+        // Alternative LINQ query without grouping
+
+        @* var averagePrice = await dbContext.Products.AverageAsync(p => p.UnitPrice) ?? 0;
+        var totalStock = await dbContext.Products.SumAsync(p => p.UnitsInStock) ?? 0;
+        var maxOrder = await dbContext.Products.MaxAsync(p => p.UnitsOnOrder) ?? 0;
+
+        Products = new List<ProductStats>
+        {
+            new ProductStats
+            {
+                AveragePrice = Math.Round(averagePrice, 0),
+                TotalStock = totalStock,
+                MaxOrder = maxOrder
+            }
+        }; *@
+
+        // Alternative SQL query using raw SQL
+
+        @* var stats = await dbContext.Database
+        .SqlQuery<ProductStats>($@"
+                    SELECT
+                    ROUND(AVG(UnitPrice), 0) AS AveragePrice,
+                    CAST(SUM(UnitsInStock) AS int) AS TotalStock,
+                    CAST(MAX(UnitsOnOrder) AS int) AS MaxOrder
+                    FROM Products
+                    ")
+        .ToListAsync();
+
+        Products = stats; *@
+
+        _processing = false;
+    }
+
+    public class ProductStats
+    {
+        public decimal AveragePrice { get; set; }
+        public int TotalStock { get; set; }
+        public int MaxOrder { get; set; }
+    }
+}

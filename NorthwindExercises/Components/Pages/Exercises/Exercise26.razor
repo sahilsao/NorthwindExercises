@@ -1,0 +1,122 @@
+﻿@page "/exercises/exercise26"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 26</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">26. Create a report that shows the ShipPostalCode, OrderID, OrderDate,
+                        RequiredDate, ShippedDate, ShipAddress of all orders
+                        with ShipPostalCode beginning with "98124".
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Orders == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Orders != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Orders" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Ship Postal Code
+                            </MudTh>
+                            <MudTh>
+                                Order ID
+                            </MudTh>
+                            <MudTh>
+                                Order Date
+                            </MudTh>
+                            <MudTh>
+                                Required Date
+                            </MudTh>
+                            <MudTh>
+                                Shipped Date
+                            </MudTh>
+                            <MudTh>
+                                Ship Address
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Ship Postal Code">@context.ShipPostalCode</MudTd>
+                            <MudTd DataLabel="Order ID">@context.OrderId</MudTd>
+                            <MudTd DataLabel="Order Date">@context.OrderDate?.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="Required Date">@context.RequiredDate?.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="Shipped Date">@context.ShippedDate?.ToString("dd/MM/yyyy")</MudTd>
+                            <MudTd DataLabel="Ship Address">@context.ShipAddress</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<Order>? Orders { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Orders = await dbContext.Orders
+        .Where(o => o.ShipPostalCode == "98124")
+        .Select(o => new Order
+        {
+            ShipPostalCode = o.ShipPostalCode,
+            OrderId = o.OrderId,
+            OrderDate = o.OrderDate,
+            RequiredDate = o.RequiredDate,
+            ShippedDate = o.ShippedDate,
+            ShipAddress = o.ShipAddress
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

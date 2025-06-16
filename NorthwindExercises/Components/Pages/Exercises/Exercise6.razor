@@ -1,0 +1,112 @@
+﻿@page "/exercises/exercise6"
+
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 6</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">6. Create a report that shows the CompanyName, Fax, Phone, Country,
+                        HomePage from the suppliers table sorted by the
+                        Country in descending order then by CompanyName in ascending order. </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Suppliers == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetSuppliersAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Suppliers != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Suppliers" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>
+                                Company Name
+                            </MudTh>
+                            <MudTh>
+                                Fax
+                            </MudTh>
+                            <MudTh>
+                                Phone
+                            </MudTh>
+                            <MudTh>
+                                Country
+                            </MudTh>
+                            <MudTh>
+                                Home Page
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Company Name">@context.CompanyName</MudTd>
+                            <MudTd DataLabel="Fax">@context.Fax</MudTd>
+                            <MudTd DataLabel="Phone">@context.Phone</MudTd>
+                            <MudTd DataLabel="Country">@context.Country</MudTd>
+                            <MudTd DataLabel="Home Page">@context.HomePage</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    public List<Supplier>? Suppliers { get; set; }
+    private async Task GetSuppliersAsync()
+    {
+        _processing = true;
+
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Suppliers = await dbContext.Suppliers
+        .OrderByDescending(s => s.Country)
+        .ThenBy(s => s.CompanyName)
+        .Select(s => new Supplier
+        {
+            CompanyName = s.CompanyName,
+            Fax = s.Fax,
+            Phone = s.Phone,
+            Country = s.Country,
+            HomePage = s.HomePage
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+}

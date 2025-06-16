@@ -1,0 +1,143 @@
+﻿@page "/exercises/exercise33"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 33</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">33. Create a report that shows the SupplierID, CompanyName, CategoryName,
+                        ProductName and UnitPrice from the products,
+                        suppliers and categories table
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (Products == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (Products != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="Products" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Supplier ID</MudTh>
+                            <MudTh>Company Name</MudTh>
+                            <MudTh>Category Name</MudTh>
+                            <MudTh>Product Name</MudTh>
+                            <MudTh>Unit Price</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Supplier ID">@context.SupplierID</MudTd>
+                            <MudTd DataLabel="Company Name">@context.CompanyName</MudTd>
+                            <MudTd DataLabel="Category Name">@context.CategoryName</MudTd>
+                            <MudTd DataLabel="Product Name">@context.ProductName</MudTd>
+                            <MudTd DataLabel="Unit Price">@context.UnitPrice</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<ProductDetailDto>? Products { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        Products = await (
+        from p in dbContext.Products
+        join s in dbContext.Suppliers on p.SupplierId equals s.SupplierId
+        join c in dbContext.Categories on p.CategoryId equals c.CategoryId
+        select new ProductDetailDto
+        {
+            SupplierID = s.SupplierId,
+            CompanyName = s.CompanyName,
+            CategoryName = c.CategoryName,
+            ProductName = p.ProductName,
+            UnitPrice = p.UnitPrice ?? 0
+        }
+        ).ToListAsync();
+
+        @* Products = await dbContext.Products
+        .Include(p => p.Supplier)
+        .Include(p => p.Category)
+        .Select(p => new ProductDetailDto
+        {
+            SupplierID = p.Supplier != null ? p.Supplier.SupplierId : 0,
+            CompanyName = p.Supplier != null ? p.Supplier.CompanyName : null,
+            CategoryName = p.Category != null ? p.Category.CategoryName : null,
+            ProductName = p.ProductName,
+            UnitPrice = p.UnitPrice ?? 0
+        })
+        .ToListAsync(); *@
+
+        @* Products = await dbContext.Products
+        .Join(dbContext.Suppliers, p => p.SupplierId, s => s.SupplierId, (p, s) => new { p, s })
+        .Join(dbContext.Categories, ps => ps.p.CategoryId, c => c.CategoryId, (ps, c) => new ProductDetailDto
+        {
+            SupplierID = ps.s.SupplierId,
+            CompanyName = ps.s.CompanyName,
+            CategoryName = c.CategoryName,
+            ProductName = ps.p.ProductName,
+            UnitPrice = ps.p.UnitPrice ?? 0
+        })
+        .ToListAsync(); *@
+
+        _processing = false;
+    }
+
+    public class ProductDetailDto
+    {
+        public int SupplierID { get; set; }
+        public string? CompanyName { get; set; }
+        public string? CategoryName { get; set; }
+        public string? ProductName { get; set; }
+        public decimal UnitPrice { get; set; }
+    }
+}

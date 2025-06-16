@@ -1,0 +1,105 @@
+﻿@page "/exercises/exercise34"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 34</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">34. Create a report that shows the CustomerID, sum of Freight, from the
+                        orders table with sum of freight greater $200, grouped
+                        by CustomerID. HINT: you will need to use a Groupby and a Having statement
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (OrdersFreightDetails == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (OrdersFreightDetails != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="OrdersFreightDetails" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Customer ID</MudTh>
+                            <MudTh>Sum of Freight</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Customer ID">@context.CustomerID</MudTd>
+                            <MudTd DataLabel="Sum of Freight">@context.SumOfFreight</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<OrderFrightDetailDto>? OrdersFreightDetails { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        OrdersFreightDetails = await dbContext.Orders
+        .GroupBy(o => o.CustomerId)
+        .Where(g => g.Sum(o => o.Freight) > 200)
+        .Select(g => new OrderFrightDetailDto
+        {
+            CustomerID = g.Key,
+            SumOfFreight = g.Sum(o => o.Freight) ?? 0
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+
+    public class OrderFrightDetailDto
+    {
+        public string? CustomerID { get; set; }
+        public decimal SumOfFreight { get; set; }
+    }
+}
