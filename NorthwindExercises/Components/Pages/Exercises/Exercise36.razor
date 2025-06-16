@@ -1,0 +1,134 @@
+﻿@page "/exercises/exercise36"
+
+@using Microsoft.EntityFrameworkCore.Internal
+
+@using System.ComponentModel.DataAnnotations;
+@using Microsoft.EntityFrameworkCore;
+@using NorthwindExercises.Context;
+@using NorthwindExercises.Entities;
+
+
+@inject NavigationManager NavigationManager
+@inject IDbContextFactory<DbContextNorthwind> DbContextFactory
+
+<PageTitle>Exercise 36</PageTitle>
+
+<MudGrid>
+    <MudItem>
+        <MudStack>
+            <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2">36. Create a report that shows the OrderID, ContactName, UnitPrice,
+                        Quantity, Discount from the order details, orders and
+                        customers table with discount given on every purchase
+                    </MudText>
+                </MudCardContent>
+                <MudCardActions>
+                    @if (DiscountedOrders == null)
+                    {
+                        <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
+                            Color="Color.Primary">
+                            @if (_processing)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Processing</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Solution</MudText>
+                            }
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+
+            @if (DiscountedOrders != null)
+            {
+                <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
+                <MudPaper Class="pa-3">
+                    <MudTable Items="DiscountedOrders" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>Order Id</MudTh>
+                            <MudTh>Contact Name</MudTh>
+                            <MudTh>Unit Price</MudTh>
+                            <MudTh>Quantity</MudTh>
+                            <MudTh>Discount</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Customer ID">@context.OrderId</MudTd>
+                            <MudTd DataLabel="Sum of Freight">@context.ContactName</MudTd>
+                            <MudTd DataLabel="Customer ID">@context.UnitPrice</MudTd>
+                            <MudTd DataLabel="Sum of Freight">@context.Quantity</MudTd>
+                            <MudTd DataLabel="Customer ID">@context.Discount</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>No records found.</MudText>
+                        </NoRecordsContent>
+                        <PagerContent>
+                            <MudTablePager />
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+        </MudStack>
+    </MudItem>
+    <MudSpacer />
+</MudGrid>
+
+@code {
+
+    private bool _processing = false;
+    private List<DiscountedOrderDto>? DiscountedOrders { get; set; }
+    private async Task GetDetailsAsync()
+
+    {
+        _processing = true;
+
+        // Simulate processing delay
+        await Task.Delay(500);
+
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+
+        
+        @* DiscountedOrders = await dbContext.OrderDetails
+        .Where(od => od.Discount != 0)
+        .Join(dbContext.Orders, od => od.OrderId, o => o.OrderId, (od, o) => new { od, o })
+        .Join(dbContext.Customers, odo => odo.o.CustomerId, c => c.CustomerId, (odo, c) => new DiscountedOrderDto
+        {
+            OrderId = odo.od.OrderId,
+            ContactName = c.ContactName,
+            UnitPrice = odo.od.UnitPrice,
+            Quantity = odo.od.Quantity,
+            Discount = odo.od.Discount
+        })
+        .ToListAsync(); *@
+
+        // Using Include and ThenInclude to fetch related entities
+
+        DiscountedOrders = await dbContext.OrderDetails
+        .Include(od => od.Order) // Include related Order
+        .ThenInclude(o => o.Customer) // Then include related Customer
+        .Where(od => od.Discount != 0)
+        .Select(od => new DiscountedOrderDto
+        {
+            OrderId = od.OrderId,
+            ContactName = od.Order.Customer!.ContactName,
+            UnitPrice = od.UnitPrice,
+            Quantity = od.Quantity,
+            Discount = od.Discount
+        })
+        .ToListAsync();
+
+        _processing = false;
+    }
+
+    public class DiscountedOrderDto
+    {
+        public int OrderId { get; set; }
+        public string? ContactName { get; set; }
+        public decimal UnitPrice { get; set; }
+        public short Quantity { get; set; }
+        public float Discount { get; set; }
+    }
+}
