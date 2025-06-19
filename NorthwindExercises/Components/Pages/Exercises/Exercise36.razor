@@ -19,13 +19,14 @@
             <MudText Typo="Typo.h6" Color="Color.Primary">Exercise</MudText>
             <MudCard>
                 <MudCardContent>
-                    <MudText Typo="Typo.body2">36. Create a report that shows the OrderID, ContactName, UnitPrice,
-                        Quantity, Discount from the order details, orders and
-                        customers table with discount given on every purchase
+                    <MudText Typo="Typo.body2">36. Create a report that shows the EmployeeID, the LastName and FirstName
+                        as employee, and the LastName and FirstName of
+                        who they report to as manager from the employees table sorted by Employee
+                        ID. HINT: This is a SelfJoin.
                     </MudText>
                 </MudCardContent>
                 <MudCardActions>
-                    @if (DiscountedOrders == null)
+                    @if (EmployeesReportsTo == null)
                     {
                         <MudButton Disabled="@_processing" Variant="Variant.Text" OnClick="@GetDetailsAsync"
                             Color="Color.Primary">
@@ -43,24 +44,20 @@
                 </MudCardActions>
             </MudCard>
 
-            @if (DiscountedOrders != null)
+            @if (EmployeesReportsTo != null)
             {
                 <MudText Typo="Typo.h6" Color="Color.Primary">Solution</MudText>
                 <MudPaper Class="pa-3">
-                    <MudTable Items="DiscountedOrders" Hover="true" Elevation="0">
+                    <MudTable Items="EmployeesReportsTo" Hover="true" Elevation="0">
                         <HeaderContent>
-                            <MudTh>Order Id</MudTh>
-                            <MudTh>Contact Name</MudTh>
-                            <MudTh>Unit Price</MudTh>
-                            <MudTh>Quantity</MudTh>
-                            <MudTh>Discount</MudTh>
+                            <MudTh>Employee ID</MudTh>
+                            <MudTh>Employee</MudTh>
+                            <MudTh>Manager</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Customer ID">@context.OrderId</MudTd>
-                            <MudTd DataLabel="Sum of Freight">@context.ContactName</MudTd>
-                            <MudTd DataLabel="Customer ID">@context.UnitPrice</MudTd>
-                            <MudTd DataLabel="Sum of Freight">@context.Quantity</MudTd>
-                            <MudTd DataLabel="Customer ID">@context.Discount</MudTd>
+                            <MudTd DataLabel="Employee ID">@context.EmployeeId</MudTd>
+                            <MudTd DataLabel="Employee">@context.Employee</MudTd>
+                            <MudTd DataLabel="Manager">@context.Manager</MudTd>
                         </RowTemplate>
                         <NoRecordsContent>
                             <MudText>No records found.</MudText>
@@ -79,7 +76,13 @@
 @code {
 
     private bool _processing = false;
-    private List<DiscountedOrderDto>? DiscountedOrders { get; set; }
+    private class EmployeeReportDto
+    {
+        public int EmployeeId { get; set; }
+        public string Employee { get; set; } = string.Empty;
+        public string? Manager { get; set; }
+    }
+    private List<EmployeeReportDto>? EmployeesReportsTo { get; set; }
     private async Task GetDetailsAsync()
 
     {
@@ -90,45 +93,18 @@
 
         await using var dbContext = await DbContextFactory.CreateDbContextAsync();
 
-        
-        @* DiscountedOrders = await dbContext.OrderDetails
-        .Where(od => od.Discount != 0)
-        .Join(dbContext.Orders, od => od.OrderId, o => o.OrderId, (od, o) => new { od, o })
-        .Join(dbContext.Customers, odo => odo.o.CustomerId, c => c.CustomerId, (odo, c) => new DiscountedOrderDto
+        EmployeesReportsTo = await dbContext.Employees
+        .OrderBy(a => a.EmployeeId)
+        .Select(a => new EmployeeReportDto
         {
-            OrderId = odo.od.OrderId,
-            ContactName = c.ContactName,
-            UnitPrice = odo.od.UnitPrice,
-            Quantity = odo.od.Quantity,
-            Discount = odo.od.Discount
-        })
-        .ToListAsync(); *@
-
-        // Using Include and ThenInclude to fetch related entities
-
-        DiscountedOrders = await dbContext.OrderDetails
-        .Include(od => od.Order) // Include related Order
-        .ThenInclude(o => o.Customer) // Then include related Customer
-        .Where(od => od.Discount != 0)
-        .Select(od => new DiscountedOrderDto
-        {
-            OrderId = od.OrderId,
-            ContactName = od.Order.Customer!.ContactName,
-            UnitPrice = od.UnitPrice,
-            Quantity = od.Quantity,
-            Discount = od.Discount
+            EmployeeId = a.EmployeeId,
+            Employee = a.LastName + " " + a.FirstName,
+            Manager = a.ReportsToNavigation != null ? a.ReportsToNavigation.LastName + " " + a.ReportsToNavigation.FirstName : null
         })
         .ToListAsync();
 
         _processing = false;
     }
 
-    public class DiscountedOrderDto
-    {
-        public int OrderId { get; set; }
-        public string? ContactName { get; set; }
-        public decimal UnitPrice { get; set; }
-        public short Quantity { get; set; }
-        public float Discount { get; set; }
-    }
+
 }
